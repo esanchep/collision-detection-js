@@ -3,33 +3,93 @@ const context = canvas.getContext('2d');
 canvas.width = 1000;
 canvas.height = 1000;
 
-var maxElements = 10;
+var maxPoints = 10;
 
 var lastRender = 0;
 
 let qtree = new QuadTree(new Rectangle(0, 0, canvas.width, canvas.height));
 
-const initElements = (elements) => {
-  if (elements.length >= maxElements) {
-    return elements;
+const initPoints = (points) => {
+  if (points.length >= maxPoints) {
+    return points;
   }
-  elements.push(Point.random());
-  return initElements(elements);
+  points.push(Point.random());
+  return initPoints(points);
 };
 
-var elements = initElements([]);
-elements.forEach(element => qtree.insert(element));
+var points = initPoints([]);
+points.forEach(point => qtree.insert(point));
+
 
 const update = (progress) => {
-  elements.forEach(element => element.update())
+  points.forEach(point => point.update())
   qtree.clear();
-  elements.forEach(element => qtree.insert(element));
+  points.forEach(point => qtree.insert(point));
 };
 
 const draw = () => {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  elements.forEach(element => element.draw());
-  qtree.draw(context);
+
+  for (let point of points) {
+    point.highlight(false);
+
+    const boundary = qtree.queryBoundary(point);
+    const pointsFound = qtree.queryPoints(boundary, undefined);
+    
+    let iterations = 0;
+    for (let pointFound of pointsFound) {
+      if (point.id !== pointFound.id && point.intersects(pointFound)) {
+        point.highlight(true);
+        break;
+      }
+      iterations++;
+    }
+    console.log(iterations)
+    point.draw();
+  }
+
+  // points.forEach(point => {
+    // point.highlight(false);
+    // const boundary = qtree.queryBoundary(point);
+    // const pointsFound = qtree.queryPoints(boundary, undefined);
+    // pointsFound.forEach(pointFound => {
+    //   // console.log(point.id + " " + pointFound.id)
+    //   console.log(point.id === pointFound.id)
+    //   // if (point.id === pointFound.id) {
+    //   //   // console.log("same id")
+    //   //   return;
+    //   // }
+    //   if (point.id !== pointFound.id && point.intersects(pointFound)) {
+    //     // console.log("not sanme id")
+    //     point.highlight(true);
+    //   }
+    // });
+
+
+
+    // point.highlight(false);
+    // const quadrant = qtree.queryByPoint(point);
+    // console.log(quadrant)
+    // let pointsInQuadrant = [];
+    // pointsInQuadrant = qtree.query(quadrant, undefined);
+    // pointsInQuadrant.forEach(pointInQuadrant => {
+    //   if (point.id === pointInQuadrant.id) {
+    //     // console.log("same id")
+    //     return;
+    //   }
+    //   if (pointInQuadrant.highlighted) {
+    //     return;
+    //   }
+    //   if (pointInQuadrant.intersects(point)) {
+    //     // console.log(point)
+    //     // console.log("insersects with")
+    //     // console.log(pointInQuadrant)
+    //     point.highlight();
+    //   }
+    // });
+  //   point.draw();
+  // });
+  qtree.draw();
 };
 const loop = (timestamp) => {
   const progress = timestamp - lastRender;
@@ -43,8 +103,8 @@ const loop = (timestamp) => {
 window.requestAnimationFrame(loop);
 
 document.querySelector('.num-elements').addEventListener('change', (event) => {
-  maxElements = event.target.value;
-  elements = initElements([]);
+  maxPoints = event.target.value;
+  points = initPoints([]);
   qtree = new QuadTree(new Rectangle(0, 0, canvas.width, canvas.height));
-  elements.forEach(element => qtree.insert(element));
+  points.forEach(point => qtree.insert(point));
 });
